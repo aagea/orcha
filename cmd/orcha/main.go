@@ -9,5 +9,5 @@ var Version string
 var Commit string
 
 func main() {
-	fmt.Printf("hello world! %s %s", Version, Commit)
+	fmt.Printf("ORCHA %s(%s)", Version, Commit)
 }

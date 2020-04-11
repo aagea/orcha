@@ -13,3 +13,6 @@
 
 # Executable files
 bin
+
+# VSCode files
+.vscode

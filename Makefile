@@ -11,6 +11,7 @@ COMMIT=$(shell git log -1 --pretty=format:"%H")
 # Tools
 GO_CMD=go
 GO_BUILD=$(GO_CMD) build
+GO_TEST=$(GO_CMD) test
 GO_LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X=main.Commit=$(COMMIT)"
 
 # Docker options
@@ -20,21 +21,41 @@ TARGET_DOCKER_REGISTRY ?= $$USER
 TARGET_K8S_NAMESPACE ?= default
 
 .PHONY: all
+all: clean test build
 
-all: build-darwin build-linux
-
+.PHONY: clean
+# Remove build files
 clean:
-	rm -rf bin
+	@echo "Cleaining bin directory: $(BIN)"
+	@rm -rf $(BIN)
 
+.PHONY: test
+# Test all golang files in the curdir
+test:
+	@echo "Execuitng golang tests"
+	@$(GO_TEST) -v ./...
+
+.PHONY: build
 # Build target for local environment default
+build: $(addsuffix .local,$(BUILD_TARGETS))
+
+.PHONY: build-darwin
+# Build target for darwin
 build-darwin: $(addsuffix .darwin,$(BUILD_TARGETS))
+
+.PHONY: build-linux
 # Build target for linux
 build-linux: $(addsuffix .linux,$(BUILD_TARGETS))
 
 # Trigger the build operation for the local environment. Notice that the suffix is removed.
+%.local:
+	@echo "Build darwin binary $@"
+	@$(GO_BUILD) $(GO_LDFLAGS) -o bin/local/$(basename $@) ./cmd/$(basename $@)/main.go
+
+# Trigger the build operation for darwin. Notice that the suffix is removed as it is only used for Makefile expansion purposes.
 %.darwin:
-	@ echo "Build binary $@"
-	@$(GO_BUILD) $(GO_LDFLAGS) -o bin/darwin/$(basename $@) ./cmd/$(basename $@)/main.go
+	@echo "Build darwin binary $@"
+	@GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 $(GO_BUILD) $(GO_LDFLAGS) -o bin/darwin/$(basename $@) ./cmd/$(basename $@)/main.go
 
 # Trigger the build operation for linux. Notice that the suffix is removed as it is only used for Makefile expansion purposes.
 %.linux:
@@ -54,6 +75,7 @@ docker: $(addsuffix .docker, $(BUILD_TARGETS))
 		docker build bin/docker -t $(TARGET_DOCKER_REGISTRY)/$(basename $@):$(VERSION);\
 	fi
 
+.PHONY: k8s
 k8s:
 	@rm -r bin/k8s || true
 	@mkdir -p bin/k8s

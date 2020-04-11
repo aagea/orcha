@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"github.com/aagea/orcha/cmd/orcha/commands"
+)
 
 // Version of the command
 var Version string
@@ -9,5 +11,5 @@ var Version string
 var Commit string
 
 func main() {
-	fmt.Printf("ORCHA @version: %s(%s)", Version, Commit)
+	commands.Execute(Version, Commit)
 }
